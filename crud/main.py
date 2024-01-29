@@ -1,7 +1,7 @@
-from flask import Flask,redirect,render_template,request,url_for,flash
+from flask import Flask,redirect,render_template,request,url_for,flash,jsonify
 import json
 from flask_sqlalchemy import SQLAlchemy
-
+from sqlalchemy.inspection import inspect
 
 
 local_server= True
@@ -19,13 +19,30 @@ class Test(db.Model):
     id=db.Column(db.Integer,primary_key=True)
     name=db.Column(db.String(15))
 
-class Products(db.Model):
+
+# serialization
+class Serializer(object):
+
+    def serialize(self):
+        return {c:getattr(self,c) for c in inspect(self).attrs.keys()}
+
+    
+    @staticmethod
+    def serialize_list(obj):
+        return [i.serialize() for i in obj]
+
+
+
+
+class Products(db.Model,Serializer):
     pid=db.Column(db.Integer,primary_key=True)
     productName=db.Column(db.String(50))
     productDescription=db.Column(db.String(100))
     rating=db.Column(db.Integer)
     stocks=db.Column(db.Integer)
     price=db.Column(db.Integer)
+
+
 
 @app.route("/test/")
 def test():
@@ -44,8 +61,12 @@ def test():
 
 @app.route("/")
 def home():
-    products=Products.query.all()
-    return render_template("index.html",products=products)
+    try:
+        products=Products.query.all()
+        return render_template("index.html",products=products)
+    except Exception as e:
+        return f"Database is not connected {e} "
+    
 
 # create operation
 @app.route("/create",methods=['GET','POST'])
@@ -103,6 +124,37 @@ def delete(id):
         conn.exec_driver_sql(query)
         flash("Product Deleted Successfully","danger")
         return redirect(url_for('home'))
+
+
+#flask apis
+@app.route("/api/users",methods=['GET'])
+def users():
+    usersdata={
+        "username":"anees",
+        "salary":26000,
+        "role":"Developer",
+        "isActive":True
+    }
+
+    # return json.dumps(usersdata)
+    return jsonify(usersdata)
+
+
+@app.route("/api/products",methods=['GET'])
+def apiproducts():
+    data=Products.query.all()
+    print(type(data))
+    print(type(data[0]))
+    return jsonify(Products.serialize_list(data))
+
+
+@app.route("/api/product/<int:id>",methods=['GET'])
+def apiproduct(id):
+    data=Products.query.get(id)
+    return jsonify(Products.serialize(data))
+
+
+
 
 
 app.run(debug=True)
