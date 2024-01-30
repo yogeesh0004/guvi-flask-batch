@@ -8,6 +8,9 @@ from werkzeug.security import generate_password_hash,check_password_hash
 from flask_login import login_user,login_manager,UserMixin,LoginManager,login_required,logout_user
 from flask_login import current_user
 from flask_mail import Mail
+from werkzeug.utils import secure_filename
+import os
+from datetime import datetime 
 
 local_server= True
 app=Flask(__name__)
@@ -22,7 +25,8 @@ login_manager.login_view='login'
 with open('config.json','r') as c:
     params=json.load(c)["params"]
 
-# mail configuraton
+#
+#  mail configuraton
 
 
 app.config.update(
@@ -33,6 +37,14 @@ app.config.update(
     MAIL_PASSWORD=params['gmail-password']
 )
 mail = Mail(app)
+
+
+# configuration for storing the images
+app.config['UPLOAD_FOLDER'] = 'static/uploads/'
+app.config['ALLOWED_EXTENSIONS']= ['png','jgp','jpeg','gif']
+app.config['MAX_CONTENT_LENGTH']=16*1024*1024
+
+
 
 
 # database configuration
@@ -63,6 +75,18 @@ class Signup(UserMixin,db.Model):
     
     def get_id(self):
         return self.user_id
+
+
+class Blog(db.Model):
+    bid=db.Column(db.Integer,primary_key=True)
+    title=db.Column(db.String(50))
+    description=db.Column(db.String(50))
+    author=db.Column(db.String(100))
+    date=db.Column(db.String(100))
+    image=db.Column(db.String(1000))
+    
+    
+
 
 
 @app.route("/test/")
@@ -160,6 +184,45 @@ def logout():
     flash("Logout Success","primary")
     return redirect(url_for("login"))
 
+
+
+def allowed_files(filename):
+    return '.' in filename and filename.rsplit('.',1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+
+
+@app.route("/posts",methods=['GET','POST'])
+def posts():
+    if not current_user.is_authenticated:
+        flash("Please Login and try again","info")
+        return redirect(url_for('login'))
+    
+    if request.method=="POST":
+        title=request.form.get('title')
+        des=request.form.get('desc')
+        authname=request.form.get('authorname')
+        image=request.files['image']
+        date=datetime.now()
+        getdate=date.date()
+        gettime=date.time()
+        if image and allowed_files(image.filename):
+            filename=secure_filename(image.filename)
+            print(filename)
+
+            basedir = os.path.abspath(os.path.dirname(__file__))
+            image.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
+
+            query=Blog(title=title,description=des,author=authname,date=getdate,image=image.filename)
+            db.session.add(query)
+            db.session.commit()
+            flash("Post is Uploaded","success")
+            return redirect(url_for("home"))
+        else:
+            flash("Upload the images which has .jpg,.png, .jpeg or .gif file formats","danger")
+            return render_template("blogpost.html")
+
+
+    return render_template("blogpost.html")
 
 
 app.run(debug=True)
