@@ -155,6 +155,26 @@ def apiproduct(id):
 
 
 
+@app.route("/contact", methods=['GET','POST'])
+def contact():
+    if request.method=="POST":
+        data = request.json
 
+        # Process the data (You can perform validation, database operations, etc. here)
+        name = data.get('name')
+        email = data.get('email')
+        description = data.get('description')
+        phone = data.get('phone')
+
+        # For demonstration, just print the data
+        print("Received contact form data:")
+        print("Name:", name)
+        print("Email:", email)
+        print("Description:", description)
+        print("Phone:", phone)
+
+
+    return render_template("contact.html")
+    
 
 app.run(debug=True)

@@ -72,7 +72,7 @@ class Signup(UserMixin,db.Model):
     email=db.Column(db.String(100),unique=True)
     password=db.Column(db.String(1000))
     phone=db.Column(db.String(12),unique=True)
-    
+    profilepicture=db.Column(db.String(1000))
     def get_id(self):
         return self.user_id
 
@@ -107,7 +107,8 @@ def test():
 @app.route("/")
 def home():
     try:
-        return render_template("index.html")
+        blogs=Blog.query.all()
+        return render_template("index.html",blogs=blogs)
     except Exception as e:
         return f"Database is not connected {e} "
     
@@ -207,12 +208,9 @@ def posts():
         gettime=date.time()
         if image and allowed_files(image.filename):
             filename=secure_filename(image.filename)
-            print(filename)
-
-            basedir = os.path.abspath(os.path.dirname(__file__))
             image.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
 
-            query=Blog(title=title,description=des,author=authname,date=getdate,image=image.filename)
+            query=Blog(title=title,description=des,author=authname,date=getdate,image=filename)
             db.session.add(query)
             db.session.commit()
             flash("Post is Uploaded","success")
@@ -223,6 +221,69 @@ def posts():
 
 
     return render_template("blogpost.html")
+
+
+
+@app.route("/profile",methods=['GET','POST'])
+def profile():
+    if not current_user.is_authenticated:
+        flash("Please Login and try again","info")
+        return redirect(url_for('login'))
+    userdata=Signup.query.filter_by(email=current_user.email).first()
+    print(userdata)
+    return render_template("profile.html",userdata=userdata)
+
+
+@app.route("/editprofile/<int:id>",methods=['GET'])
+def editprofile(id):
+    if not current_user.is_authenticated:
+        flash("Please Login and try again","info")
+        return redirect(url_for('login'))
+    userdata=Signup.query.filter_by(user_id=id).first()
+    print(userdata)
+    return render_template("editprofile.html",userdata=userdata)
+
+
+@app.route("/updateprofile/<int:id>",methods=['GET','POST'])
+def updateprofile(id):
+    if not current_user.is_authenticated:
+        flash("Please Login and try again","info")
+        return redirect(url_for('login'))
+    userdata=Signup.query.filter_by(email=current_user.email).first()
+   
+    if request.method=="POST":
+        firstName=request.form.get("fname")
+        lastName=request.form.get("lname")
+        email=request.form.get("email")
+        phone=request.form.get("phone")
+        pass1=request.form.get("pass1")
+        pass2=request.form.get("pass2")
+        image=request.files['dp']
+
+        if pass1!=pass2:
+            flash("Password is not matching","warning")
+            return redirect(url_for("signup"))
+            
+        gen_pass=generate_password_hash(pass1)
+        if image:
+            filename=secure_filename(image.filename)
+            image.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
+            query=f"UPDATE `signup` SET `first_name`='{firstName}',`last_name`='{lastName}',`email`='{email}',`password`='{gen_pass}',`phone`='{phone}',`profilepicture`='{filename}' WHERE `signup`.`user_id`={id}"
+            with db.engine.begin() as conn:
+                conn.exec_driver_sql(query)               
+                flash("Profile Info is Updated","info")
+                return redirect(url_for("profile"))
+            
+        else:
+            flash("Please Upload a profile picture","danger")
+            return render_template("editprofile.html",userdata=userdata)
+
+    return render_template("profile.html",userdata=userdata)
+
+
+
+
+
 
 
 app.run(debug=True)
