@@ -11,6 +11,7 @@ from flask_mail import Mail
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime 
+import pyodbc
 
 local_server= True
 app=Flask(__name__)
@@ -41,7 +42,7 @@ mail = Mail(app)
 
 # configuration for storing the images
 app.config['UPLOAD_FOLDER'] = 'static/uploads/'
-app.config['ALLOWED_EXTENSIONS']= ['png','jgp','jpeg','gif']
+app.config['ALLOWED_EXTENSIONS']= ['png','jgp','jpeg','gif','jfif']
 app.config['MAX_CONTENT_LENGTH']=16*1024*1024
 
 
@@ -49,7 +50,7 @@ app.config['MAX_CONTENT_LENGTH']=16*1024*1024
 
 # database configuration
 # app.config['SQLALCHEMY_DATABASE_URI']='mysql://username:password@localhost/databasename'
-app.config['SQLALCHEMY_DATABASE_URI']='mysql://root:@localhost/capstoneproject'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mssql+pyodbc://tap2023:tap2023@APINP-ELPTTQSW3\SQLEXPRESS/capstoneproject?driver=SQL Server'
 db=SQLAlchemy(app)
 
 
@@ -73,6 +74,7 @@ class Signup(UserMixin,db.Model):
     password=db.Column(db.String(1000))
     phone=db.Column(db.String(12),unique=True)
     profilepicture=db.Column(db.String(1000))
+    is_admin=db.Column(db.Boolean,default=False)
     def get_id(self):
         return self.user_id
 
@@ -142,7 +144,7 @@ def signup():
                 return redirect(url_for("signup"))
             
             gen_pass=generate_password_hash(pass1)
-            query=f"INSERT into `signup` (`first_name`,`last_name`,`email`,`password`,`phone`) VALUES ('{firstName}','{lastName}','{email}','{gen_pass}','{phone}')"
+            query=f"INSERT into [signup] ([first_name],[last_name],[email],[password],[phone]) VALUES ('{firstName}','{lastName}','{email}','{gen_pass}','{phone}')"
 
             with db.engine.begin() as conn:
                 conn.exec_driver_sql(query)               
@@ -268,7 +270,7 @@ def updateprofile(id):
         if image:
             filename=secure_filename(image.filename)
             image.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
-            query=f"UPDATE `signup` SET `first_name`='{firstName}',`last_name`='{lastName}',`email`='{email}',`password`='{gen_pass}',`phone`='{phone}',`profilepicture`='{filename}' WHERE `signup`.`user_id`={id}"
+            query=f"UPDATE [signup] SET [first_name]='{firstName}',[last_name]='{lastName}',[email]='{email}',[password]='{gen_pass}',[phone]='{phone}',[profilepicture]='{filename}' WHERE [signup].[user_id]={id}"
             with db.engine.begin() as conn:
                 conn.exec_driver_sql(query)               
                 flash("Profile Info is Updated","info")
@@ -280,10 +282,48 @@ def updateprofile(id):
 
     return render_template("profile.html",userdata=userdata)
 
+@app.route("/update/<int:bid>",methods=['GET','POST'])
+
+def update(bid):
+    blog_ = Blog.query.get(bid)
+    if request.method=="POST":
+        ptitle=request.form.get('title')
+        pDesc=request.form.get('description')
+        pauth=request.form.get('author')
+        pdate=request.form.get('date')
+        pimg=request.form.get('image')
+        # query=Products(productName=pName,productDescription=pDesc,rating=pRating,stocks=pStocks,price=pPrice)
+        # db.session.add(query)
+        # db.session.commit()
+        # if pimg and allowed_files(pimg.filename):
+        #     filename=secure_filename(pimg.filename)
+        #     pimg.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
+        sql_query=f"UPDATE Blog SET title='{ptitle}',description='{pDesc}',author='{pauth}',date='{pdate}',image='{pimg}' WHERE bid='{bid}'"
+       
+        with db.engine.begin() as conn:
+            conn.exec_driver_sql(sql_query)
+           
+            return redirect(url_for('home'))
+ 
+ 
+    return render_template("edit.html", blog=blog_)
 
 
+@app.route("/edit/<int:bid>")
+def edit(bid):
+    Blogs=Blog.query.filter_by(bid=bid).first()
+    return render_template("edit.html",Blogs=Blogs)
 
 
+# delete operation
+@app.route("/delete/<int:id>",methods=['GET'])
+def delete(id):
+    # print(id)
+    query=f"DELETE FROM Blog WHERE [bid]={id}"
+    with db.engine.begin() as conn:
+        conn.exec_driver_sql(query)
+        
+        return redirect(url_for('home'))
 
 
 app.run(debug=True)

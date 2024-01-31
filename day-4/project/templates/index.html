@@ -20,6 +20,13 @@ block body %}
             <p>Author : {{blog.author}}</p>
             <p>Posted At : {{blog.date}}</p>
             <a href="#" class="btn btn-primary">View</a>
+
+            {% if current_user.is_admin %}
+           <a href="{{ url_for('delete', id=blog.bid) }}" class="btn btn-danger">Delete</a>
+            <a href="/edit/{{blog.bid}}" class="btn btn-info">Edit</a>
+              
+            {% endif %}
+            
           </div>
         </div>
       </div>
@@ -30,3 +37,4 @@ block body %}
 <!-- End Contact Section -->
 
 {% endblock body %}
+<script src="https://kit.fontawesome.com/18b9984e04.js" crossorigin="anonymous"></script>

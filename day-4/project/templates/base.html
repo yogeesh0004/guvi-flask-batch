@@ -92,6 +92,11 @@
             <li>
               <a class="getstarted scrollto" href="/profile">Profile</a>
             </li>
+            <li>
+            {% if current_user.is_admin %}
+              <a href="admin.html" ><i class="fa-solid fa-user-tie"></i>  Admin</a>
+            {% endif %}
+            </li>
           </ul>
           <i class="bi bi-list mobile-nav-toggle"></i>
         </nav>
@@ -251,5 +256,6 @@
 
     <!-- Template Main JS File -->
     <script src="/static/assets/js/main.js"></script>
+    <script src="https://kit.fontawesome.com/18b9984e04.js" crossorigin="anonymous"></script>
   </body>
 </html>
