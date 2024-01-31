@@ -124,6 +124,7 @@ def signup():
             phone=request.form.get("phone")
             pass1=request.form.get("pass1")
             pass2=request.form.get("pass2")
+            isAdmin=False
 
             if pass1!=pass2:
                 flash("Password is not matching","warning")
@@ -250,7 +251,6 @@ def updateprofile(id):
         flash("Please Login and try again","info")
         return redirect(url_for('login'))
     userdata=Signup.query.filter_by(email=current_user.email).first()
-   
     if request.method=="POST":
         firstName=request.form.get("fname")
         lastName=request.form.get("lname")
