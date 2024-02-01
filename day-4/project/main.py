@@ -296,8 +296,8 @@ def update(bid):
         # db.session.add(query)
         # db.session.commit()
         # if pimg and allowed_files(pimg.filename):
-        #     filename=secure_filename(pimg.filename)
-        #     pimg.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
+        #  filename=secure_filename(pimg.filename)
+        # pimg.save(os.path.join(app.config['UPLOAD_FOLDER'],filename))
         sql_query=f"UPDATE Blog SET title='{ptitle}',description='{pDesc}',author='{pauth}',date='{pdate}',image='{pimg}' WHERE bid='{bid}'"
        
         with db.engine.begin() as conn:
